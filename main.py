@@ -1,25 +1,28 @@
-import h5py
-import numpy
 import numpy as np
+from ExtractData import ObtenerData
+from Constants import Path
+from pyts import preprocessing
 
-# TypeData:
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-# acc: retorna una lista de numpy con el eje X, Y, Z de body_acc
-# gyro: retorna una lista de numpy con el eje X, Y, Z de
-def ObtenerData(DataPath, TypeData):
-    x = []
-    y = []
+x, y = ObtenerData(Path, "acc")
 
-    Data = {
-        "acc" : [ "", "", ""]
-    }
+scaler = preprocessing.StandardScaler()
 
-    Data = "C:/Users/RODRIGO/PycharmProjects/MachineProject2/Data1/train.h5"
+x = np.array([scaler.fit_transform(x[i]) for i in range(x.shape[0])])
 
-x = []
-y = []
+#x = scaler.fit_transform(x)
 
-with h5py.File(Data, "r") as f:
-    for clave in f.keys():
-        xd = np.array(f[clave][:])
-        print(clave)
+print(x.shape)
+
+# % de Datos faltantes
+
+# Cada posición del array será un True o False, si es faltante (nan) será True, si no es faltante False.
+MissingProb = np.isnan(x).mean() * 100
+
+print(f"Porcentaje de datos faltantes: {MissingProb:.4f}%")
+
+# Cómo hay un 0% de datos faltntes, no será necesario realizar una interpolación en los datos faltantes.
