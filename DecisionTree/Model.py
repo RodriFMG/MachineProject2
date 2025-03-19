@@ -1,18 +1,23 @@
-from Methods import Ganancia, EntropyPadre, EntropyContentNode
-from Node import Node
+# Cuando python importa, importa según la ruta GENERAL DEL PROGRAMA, NO EN BASE A LA RUTA O ARCHIVO PY
+# DE ESE MISMO PAQUETE, PARA HACER ESTO, E IMPORTAR UN ARCHIVO QUE ESTA PUESTO EN EL MISMO DIRECTORIO
+# SE USA UN IMPORT RELATIVO, OSEA UN .ARCHIVOPY, y ya, solo agregando ese . antes del archivo py
+# esto indica que
+
+from .Methods import Ganancia, EntropyPadre, EntropyContentNode
+from .Node import Node
 import numpy as np
 
 
 class DecisionTree:
 
     # Todo este proceso se realiza con listas de python, por las concatenaciones directas.
-    def __init__(self, values, features, umbral, is3D=False, Method="Entropy"):
-        '''
+    def __init__(self, features, values, umbral, is3D=False, Method="Entropy"):
+        """
         :param values: Lista de las etiquetas
         :param features: Lista de las coordenadas
         :param umbral: Valor mínimo de la Entropía o Ganancia que va a servir como punto de pare.
         :param is3D: Verifica si se pasarán datos con 3 dimensiones: [eje x, eje y, eje z]
-        '''
+        """
 
         self.root = Node(value=values, feature=features)
         self.umbral = umbral
@@ -41,6 +46,7 @@ def MethodByAxis(node, AxisArray, Axis, method, is3D):
         raise ValueError("El nodo padre no tiene elementos, no debería llegar acá.")
 
     # para numpy es numpylist.size == 0, para ver si está vacia.
+    # para un include en numpy es, numpylist.isin(value), retorna un boolean numpy. is in (está en)...
 
     return np.array(loss)
 
@@ -51,6 +57,7 @@ def make_tree(node, umbral, method, is3D):
         return
 
     eje_x = sorted(node.feature[:, 0])
+
     eje_y = sorted(node.feature[:, 1])
 
     # Para que en numpy se pueda realizar algo similar que el PythonList.append(), se usa NumpyList.concatenate()
@@ -68,20 +75,24 @@ def make_tree(node, umbral, method, is3D):
     # recibe parámetros infinitos hasta que se declare ese parámetro en cuestion (los que estan antes de ese
     # se declaran de forma normal)
     loss = np.concatenate([
-                           MethodByAxis(node, eje_x, "x", method, is3D),
-                           MethodByAxis(node, eje_y, "y", method, is3D)])
+        MethodByAxis(node, eje_x, "x", method, is3D),
+        MethodByAxis(node, eje_y, "y", method, is3D)])
 
     if is3D:
-        eje_z = sorted(node.feature[:][2])
+        eje_z = sorted(node.feature[:, 2])
         loss = np.concatenate([
-                               loss,
-                               MethodByAxis(node, eje_z, "z", method, is3D)
-                               ])
+            loss,
+            MethodByAxis(node, eje_z, "z", method, is3D)
+        ])
 
-    LossSorted = sorted(loss, key=lambda x: x[0])
+    LossSorted = np.array(sorted(loss, key=lambda x: x[0]))
 
     # Rescatamos la división que cause menor error.
-    Trazo, Axi = LossSorted[0, 1], LossSorted[0, 2]
+    Trazo, Axi = LossSorted[0, 1].astype(np.float64), LossSorted[0, 2].astype(str)
+
+    print(f"Loss: {LossSorted[0, 0]}")
+
+    print(f"Trazo: {Trazo}, Axi: {Axi}\n\n")
 
     left, right = node.split(Trazo, Axi, is3D)
 
@@ -110,7 +121,23 @@ def prediction(node, cords, is3D):
         return prediction(node.left, cords, is3D) if node.condition(cords[AxiCondition]) else (
             prediction(node.right, cords, is3D))
     else:
-        if node.isLeaf() is True:
+        if node.isLeaf():
             return node.prediction()
         else:
             raise ValueError("Se esperaba que el nodo sea hoja.")
+
+
+def Accuracy(model, Data, y, is3D):
+    TotalData = len(Data)
+    Preds = np.array([prediction(model.root, cords, is3D) for cords in Data])
+
+    if Preds.size != y.size:
+        raise ValueError("Se esperaba que el # de predicciones y etiquetas reales fueran los mismos.")
+
+    # por el broadcast de numpy Preds == y, retorna un array con los booleanos de la comparación
+    # indice por indice de ambos arrays numpy, solo nos interesa los correctos, así que sumamos (True = 1).
+
+    # Compara y retorna [Preds[0] == y[0], Preds[1] == y[1] ...], ambos deben tener la misma estructura y size.
+    NumCorrects = np.sum(Preds == y)
+
+    return np.round(NumCorrects/TotalData, 4)

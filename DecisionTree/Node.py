@@ -18,8 +18,8 @@ class Node:
 
     def prediction(self):
 
-        if self.left is None and self.right is None:
-            valores, conteos = np.unique(self.value, return_count=True)
+        if self.isLeaf():
+            valores, conteos = np.unique(self.value, return_counts=True)
             MaxFrecuencyIndex = np.argmax(conteos)
 
             return valores[MaxFrecuencyIndex]
@@ -41,14 +41,18 @@ class Node:
     # condition <- lambda x : x <= value_condition
     def split(self, value_condition, eje, is3D):
 
+        self.feature = np.array(self.feature, dtype=float)
+
         if eje == "x":
-            ArraySplit = self.feature[:][0]
+            ArraySplit = self.feature[:, 0]
         elif eje == "y":
-            ArraySplit = self.feature[:][1]
+            ArraySplit = self.feature[:, 1]
         elif is3D and eje == "z":
-            ArraySplit = self.feature[:][2]
+            ArraySplit = self.feature[:, 2]
         else:
             raise ValueError("Se mando incorrectamente el eje.")
+
+
 
         condition = lambda x: x <= value_condition
 
@@ -60,15 +64,20 @@ class Node:
         right_features, right_values = [], []
 
         for index, Cumple in enumerate(ConditionArraySplit):
-            if Cumple is True:
+
+            # Si pongo if boolean is True:, no funciona correctamente, solo es poner if boolean: entra si es True
+            # y no entra cuando es False.
+            if Cumple:
                 left_values.append(self.value[index])
                 left_features.append(self.feature[index])
             else:
                 right_values.append(self.value[index])
                 right_features.append(self.feature[index])
 
-        left = Node(value=left_values, feature=left_features)
-        right = Node(value=right_values, feature=right_features)
+
+
+        left = Node(value=np.array(left_values), feature=np.array(left_features))
+        right = Node(value=np.array(right_values), feature=np.array(right_features))
 
         return left, right
 
